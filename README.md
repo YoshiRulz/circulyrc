@@ -12,4 +12,4 @@ In summary:
 
 ---
 
-Examples are included in the `examples/` directory. If the songs' copyright holder, Andrew Huang, decides he doesn't want me republishing his lyrics then I'll make up my own examples.
+Examples are included in the `examples` directory. If the songs' copyright holder, Andrew Huang, decides he doesn't want me republishing his lyrics then I'll make up my own examples.
