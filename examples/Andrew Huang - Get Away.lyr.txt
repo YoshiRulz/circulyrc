@@ -1,3 +1,5 @@
+[v: 0.4 | 1]
+
 [r: Chorus]
 Too many lights at the ball /
 Trying to flicker, glitter, shimmer, shine
@@ -11,7 +13,7 @@ So baby let's get away
 
 You know I've been waking up /
 Falling in love over and over with you
-Trying not think too much
+Trying not think too much /
 'Cause then I think of you and I know I'll miss you
 Could it be a new day?
 I'm trying to get you away /
