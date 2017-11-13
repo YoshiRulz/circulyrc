@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<script>
+			"use strict";
+			// Circulyr v0.4 compiler - reference implementation (w/o gotos)
+
+			var d = document; d.gEBI = d.getElementById;
+			var regexMain = new RegExp("\\[([bcfgmpqrstv])\\:( ([^|\\]]+)( \\| ([^\\]]+))?)?\\]");
+			var regexLineRep = new RegExp("(.+) \\[x(\\d+)\\]$");
+			var regexSectionRep = new RegExp("^\\[x(\\d+)\\]$");
+			var flag = function(f) { // Read flags from <input>s
+				for (let e of d.getElementsByName(f)) {
+					if (e.checked) {
+						return +e.value;
+					};
+				}
+				return 1;
+			};
+			var clear = function() {
+				d.gEBI("lyr").value = "";
+				d.gEBI("clyr").value = "";
+			};
+			var update = function() { // Update [g]/[q] flags
+				d.getElementsByName("grs")[1].checked = true;
+				d.getElementsByName("qps")[1].checked = true;
+			};
+
+			var compile = function() {
+				var i = [];
+				var o = [];
+				for (let section of d.gEBI("lyr").value.split("\n\n")) i.push(section.split("\n"));
+
+				// Parse [b], [c], [f], [m], [t], and [v]
+				for (let section of i) {
+					let temp = [];
+					for (let line of section) {
+						let m = line.match(regexMain);
+						if (m === null) {
+							// Lines without tags are ignored
+							temp.push(line);
+						} else {
+							switch (m[1]) {
+								case "b": case "c": case "f": case "m": case "t": case "v":
+									// Omitted if the tag type is flagged for omission
+									if (flag(m[1])) temp.push(line);
+									break;
+								default:
+									// Lines with repetitions or replacements are also ignored at this stage
+									temp.push(line);
+							}
+						}
+					}
+					if (temp.length > 0) o.push(temp);
+				}
+
+				// Normalize output
+				i = [];
+				for (let section of o) {
+					for (let line of section) i.push(line);
+					i.push("");
+				}
+				i.pop();
+				o = [];
+
+				//TODO [g], [q]
+
+				switch (flag("x")) {
+					case 0: // Parse line repetitions and continue through case 1
+						for (let line of i) {
+							let m = line.match(regexLineRep);
+							if (m !== null) {
+								// Remove repetition tag and repeat
+								line = m[1];
+								let temp = m[2];
+								while (temp > 1) {
+									o.push(line);
+									temp--;
+								}
+							}
+							o.push(line);
+						}
+						i = o;
+						o = [];
+					case 1: // Parse section repetitions
+						for (let section of i.join("\n").split("\n\n")) {
+							let lines = section.split("\n");
+							let m = lines[lines.length - 1].match(regexSectionRep);
+							if (m !== null) {
+								// Remove repetition tag and repeat
+								lines.pop();
+								let temp = m[1];
+								while (temp > 1) {
+									o.push(lines);
+									temp--;
+								}
+							}
+							o.push(lines);
+						}
+						// Normalize output
+						i = [];
+						for (let section of o) i.push(section.join("\n"));
+						i = i.join("\n\n").split("\n");
+						o = [];
+				}
+
+				for (let section of i) o.push(section);
+				d.gEBI("clyr").value = o.join("\n");
+			};
+		</script>
+		<style>
+			* {
+				font-family: sans-serif;
+			}
+			html, body {
+				height: 100%;
+				margin: 0;
+				padding: 0;
+				width: 100%;
+			}
+
+			.flex-r, .flex-c {
+				display: flex;
+				flex-wrap: nowrap;
+			}
+			.flex-r { flex-direction: row; }
+			.flex-c { flex-direction: column; }
+
+			main {
+				flex: 1;
+				padding: 1rem 1rem 0 1rem;
+			}
+			textarea {
+				flex: 1;
+				font-family: monospace;
+				padding: 0.5rem;
+				resize: none;
+			}
+			footer {
+				height: 10rem;
+				padding: 1rem;
+			}
+
+			aside {
+				align-items: center;
+				border-right: 2px solid gray;
+				flex: 2;
+				padding-right: 1rem;
+			}
+			button {
+				height: 2rem;
+				margin: 0.5rem;
+				width: 80%;
+			}
+			#big {
+				font-size: 1.125rem;
+				font-weight: bold;
+				height: 2.5rem;
+			}
+			hr {
+				margin: 0.25rem;
+				width: 60%;
+			}
+			p {
+				font-size: 0.75rem;
+				text-align: center;
+			}
+
+			section {
+				flex: 5;
+				padding-left: 1rem;
+			}
+			td {
+				text-align: right;
+				padding-right: 1rem;
+			}
+			td:last-child {
+				text-align: left;
+			}
+			abbr {
+				color: gray;
+			}
+		</style>
+	</head>
+	<body class="flex-c">
+		<main class="flex-r">
+			<textarea id="lyr" placeholder="Circulyr-formatted text (*.lyr)"></textarea>
+			<textarea id="clyr" placeholder="compiled text (*.clyr)"></textarea>
+		</main>
+		<footer class="flex-r">
+			<aside class="flex-c">
+				<button id="big" onclick="compile()" type="button">Compile</button>
+				<hr>
+				<button onclick="clear()" type="button">Clear all</button>
+				<p>Note: the compiler is not programmed to<br>correct your mistakes. Nest tags at your peril.</p>
+			</aside>
+			<section>
+				<table><tr>
+					<td>[b]reaks</td>
+					<td><label>keep <input name="b" type="radio" value="1"></input></label><label><input checked name="b" type="radio" value="0"></input> omit</label></td>
+
+					<td><abbr title="unimplemented"><em>[g]otos</em></abbr></td>
+					<td><label>ignore <input name="grs" type="radio" value="0"></input></label><label><input checked name="grs" type="radio" value="1"></input> parse/compile</label></td>
+				</tr><tr>
+					<td>[c]omments</td>
+					<td><label>keep <input name="c" type="radio" value="1"></input></label><label><input checked name="c" type="radio" value="0"></input> omit</label></td>
+
+					<td><abbr title="unimplemented"><em>short gotos ([q])</em></abbr></td>
+					<td><label>ignore <input name="qps" type="radio" value="0"></input></label><label><input checked name="qps" type="radio" value="1"></input> parse/compile</label></td>
+				</tr><tr>
+					<td>[f]x</td>
+					<td><label>keep <input name="f" type="radio" value="1"></input></label><label><input checked name="f" type="radio" value="0"></input> omit</label></td>
+				</tr><tr>
+					<td>[m]ovements</td>
+					<td><label>keep <input name="m" type="radio" value="1"></input></label><label><input checked name="m" type="radio" value="0"></input> omit</label></td>
+
+					<td>repetitions ([x])</td>
+					<td>
+						<label><input name="x" onchange="update()" type="radio" value="0"></input> repeat text everywhere<abbr title="Repeating sections requires parsing gotos">*</abbr></label>
+					</td>
+				</tr><tr>
+					<td>[t]ranslations</td>
+					<td><label>keep <input name="t" type="radio" value="1"></input></label><label><input checked name="t" type="radio" value="0"></input> omit</label></td>
+
+					<td><!-- continue [x] --></td>
+					<td>
+						<label><input checked name="x" onchange="update()" type="radio" value="1"></input> keep line-ending<abbr title="Repeating sections requires parsing gotos">*</abbr></label>
+						<label><input name="x" type="radio" value="2"></input> keep all</label>
+					</td>
+				</tr><tr>
+					<td>[v]ersion</td>
+					<td><label>keep <input name="v" type="radio" value="1"></input></label><label><input checked name="v" type="radio" value="0"></input> omit</label></td>
+				</tr><table>
+			</section>
+		</aside>
+	</body>
+</html>
