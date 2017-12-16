@@ -2,111 +2,24 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
+		<script src="circulyrc.js"></script>
 		<script>
 			"use strict";
-			// Circulyr v0.4 compiler - reference implementation (w/o gotos)
+			var d = document; d.gEBI = d.getElementById; d.gEsBN = d.getElementsByName;
 
-			var d = document; d.gEBI = d.getElementById;
-			var regexMain = new RegExp("\\[([bcfgmpqrstv])\\:( ([^|\\]]+)( \\| ([^\\]]+))?)?\\]");
-			var regexLineRep = new RegExp("(.+) \\[x(\\d+)\\]$");
-			var regexSectionRep = new RegExp("^\\[x(\\d+)\\]$");
-			var flag = function(f) { // Read flags from <input>s
-				for (let e of d.getElementsByName(f)) {
-					if (e.checked) {
-						return +e.value;
-					};
-				}
-				return 1;
-			};
 			var clear = function() {
-				d.gEBI("lyr").value = "";
-				d.gEBI("clyr").value = "";
+				for (let id of ["lyr", "clyr"]) d.gEBI(id).value = "";
 			};
-			var update = function() { // Update [g]/[q] flags
-				d.getElementsByName("grs")[1].checked = true;
-				d.getElementsByName("qps")[1].checked = true;
-			};
-
 			var compile = function() {
-				var i = [];
-				var o = [];
+				let i = [];
 				for (let section of d.gEBI("lyr").value.split("\n\n")) i.push(section.split("\n"));
-
-				// Parse [b], [c], [f], [m], [t], and [v]
-				for (let section of i) {
-					let temp = [];
-					for (let line of section) {
-						let m = line.match(regexMain);
-						if (m === null) {
-							// Lines without tags are ignored
-							temp.push(line);
-						} else {
-							switch (m[1]) {
-								case "b": case "c": case "f": case "m": case "t": case "v":
-									// Omitted if the tag type is flagged for omission
-									if (flag(m[1])) temp.push(line);
-									break;
-								default:
-									// Lines with repetitions or replacements are also ignored at this stage
-									temp.push(line);
-							}
-						}
-					}
-					if (temp.length > 0) o.push(temp);
-				}
-
-				// Normalize output
-				i = [];
-				for (let section of o) {
-					for (let line of section) i.push(line);
-					i.push("");
-				}
-				i.pop();
-				o = [];
-
-				//TODO [g], [q]
-
-				switch (flag("x")) {
-					case 0: // Parse line repetitions and continue through case 1
-						for (let line of i) {
-							let m = line.match(regexLineRep);
-							if (m !== null) {
-								// Remove repetition tag and repeat
-								line = m[1];
-								let temp = m[2];
-								while (temp > 1) {
-									o.push(line);
-									temp--;
-								}
-							}
-							o.push(line);
-						}
-						i = o;
-						o = [];
-					case 1: // Parse section repetitions
-						for (let section of i.join("\n").split("\n\n")) {
-							let lines = section.split("\n");
-							let m = lines[lines.length - 1].match(regexSectionRep);
-							if (m !== null) {
-								// Remove repetition tag and repeat
-								lines.pop();
-								let temp = m[1];
-								while (temp > 1) {
-									o.push(lines);
-									temp--;
-								}
-							}
-							o.push(lines);
-						}
-						// Normalize output
-						i = [];
-						for (let section of o) i.push(section.join("\n"));
-						i = i.join("\n\n").split("\n");
-						o = [];
-				}
-
-				for (let section of i) o.push(section);
-				d.gEBI("clyr").value = o.join("\n");
+				d.gEBI("clyr").value = circulyrc.compile(i);
+			};
+			var flag = function(f) {
+				for (let e of d.gEsBN(f)) if (e.checked) return +e.value;
+			};
+			var update = function() {
+				for (let name of ["grs", "qps"]) d.gEsBN(name)[1].checked = true;
 			};
 		</script>
 		<style>
